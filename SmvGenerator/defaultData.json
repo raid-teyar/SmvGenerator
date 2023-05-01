@@ -1,3 +1,23 @@
 {
+  "Nodes": 4,
 
+  "Transitions": 2,
+
+  "InitialMarking": [ 2, 0, 0, 0 ],
+
+  "PreMatrix": [
+    [ 2, 0 ],
+    [ 0, 1 ],
+    [ 0, 1 ],
+    [ 0, 0 ]
+  ],
+
+  "PostMatrix": [
+    [ 0, 0 ],
+    [ 1, 0 ],
+    [ 1, 0 ],
+    [ 0, 2 ]
+  ],
+  
+  "Markings": null
 }
