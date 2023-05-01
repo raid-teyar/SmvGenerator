@@ -48,7 +48,6 @@
                     FontWeight="Bold"
                     Text="4" />
             </StackPanel>
-
         </StackPanel>
 
         <StackPanel Grid.Column="1">

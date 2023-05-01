@@ -38,32 +38,37 @@ namespace SmvGenerator
             {
                 for (int j = 0; j < Parameters.Transitions; j++)
                 {
-                    if (Parameters.IncidenceMatrix?[i, j] != 0)
+                    // pre matrix
+                    if (Parameters.PreMatrix?[i, j] != 0)
                     {
                         string sourceLabel = "T" + j.ToString();
                         string targetLabel = "P" + i.ToString();
 
-                        if (Parameters.IncidenceMatrix?[i, j] < 0)
+                        // adding edges from transition to place
+                        Edge edge = graph.AddEdge(targetLabel, sourceLabel);
+                        edge.Attr.Color = Color.Black;
+
+                        // if the edge is not 1 , add label
+                        if (Parameters.PreMatrix?[i, j] != 1)
                         {
-                            sourceLabel = "P" + i.ToString();
-                            targetLabel = "T" + j.ToString();
+                            edge.LabelText = Parameters.PreMatrix?[i, j].ToString();
                         }
+                    }
 
-                        // adding edges
-                        Edge edge = graph.AddEdge(sourceLabel, targetLabel);
+                    // post matrix
+                    if (Parameters.PostMatrix?[i, j] != 0)
+                    {
+                        string sourceLabel = "P" + i.ToString();
+                        string targetLabel = "T" + j.ToString();
 
-                        // if the edge is not 1 or -1, add label
-                        if (Parameters.IncidenceMatrix?[i, j] != 1 && Parameters.IncidenceMatrix?[i, j] != -1)
+                        // adding edges from place to transition
+                        Edge edge = graph.AddEdge(targetLabel, sourceLabel);
+                        edge.Attr.Color = Color.Red;
+
+                        // if the edge is not 1 , add label
+                        if (Parameters.PostMatrix?[i, j] != 1)
                         {
-                            // if the edge is negative, add the absolute value
-                            if (Parameters.IncidenceMatrix?[i, j] < 0)
-                            {
-                                edge.LabelText = (-Parameters.IncidenceMatrix?[i, j]).ToString();
-                            }
-                            else
-                            {
-                                edge.LabelText = Parameters.IncidenceMatrix?[i, j].ToString();
-                            }
+                            edge.LabelText = Parameters.PostMatrix?[i, j].ToString();
                         }
                     }
                 }
@@ -109,7 +114,7 @@ namespace SmvGenerator
                     bool enabled = true;
                     for (int j = 0; j < Parameters.Nodes; j++)
                     {
-                        if (Parameters.IncidenceMatrix?[j, i] < 0 && currentMarking[j] < -Parameters.IncidenceMatrix[j, i])
+                        if (Parameters.PreMatrix?[j, i] > 0 && currentMarking[j] < Parameters.PreMatrix[j, i])
                         {
                             enabled = false;
                             break;
@@ -123,9 +128,11 @@ namespace SmvGenerator
 
                         // calculate new marking
                         int[] newMarking = (int[])currentMarking.Clone();
+
                         for (int j = 0; j < Parameters.Nodes; j++)
                         {
-                            newMarking[j] += Parameters.IncidenceMatrix[j, i];
+                            newMarking[j] -= Parameters.PreMatrix[j, i];
+                            newMarking[j] += Parameters.PostMatrix[j, i];
                         }
 
                         currentMarking = newMarking;
@@ -233,7 +240,7 @@ namespace SmvGenerator
                 }
                 else
                 {
-                    smvCode += "  p" + i.ToString() + " : 0.." + parameters.Markings.Max(marking => marking[i]) + ";\n";
+                    smvCode += "  p" + i.ToString() + " : 0.." + parameters.Markings?.Max(marking => marking[i]) + ";\n";
                 }
             }
 
@@ -264,7 +271,7 @@ namespace SmvGenerator
             }
 
             // 24: close transition relation switch statement
-            smvCode += "\tTRUE: s;\n\tesac;\n";
+            smvCode += "\tesac;\n";
 
             // 25: for all P
             for (int i = 0; i < parameters.Nodes; i++)
@@ -301,50 +308,53 @@ namespace SmvGenerator
             return smvCode;
 
             #region local_functions
-                // local functions used in the algorithm
-                bool IsPlaceBoolean(int placeIndex)
+            // local functions used in the algorithm
+            bool IsPlaceBoolean(int placeIndex)
+            {
+                if (parameters.Markings.All(marking => marking[placeIndex] <= 1))
                 {
-                    if (parameters.Markings.All(marking => marking[placeIndex] <= 1))
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
+                    return true;
                 }
+                else
+                {
+                    return false;
+                }
+            }
 
-                List<int> GetSuccessors(int markingIndex)
+            List<int> GetSuccessors(int markingIndex)
+            {
+                List<int> successors = new List<int>();
+                for (int i = 0; i < parameters.Transitions; i++)
                 {
-                    List<int> successors = new List<int>();
-                    for (int i = 0; i < parameters.Transitions; i++)
+                    bool enabled = true;
+                    for (int j = 0; j < parameters.Nodes; j++)
                     {
-                        bool enabled = true;
-                        for (int j = 0; j < parameters.Nodes; j++)
+                        if (Parameters.PreMatrix?[j, i] > 0 && parameters.Markings[markingIndex][j] < Parameters.PreMatrix[j, i])
                         {
-                            if (parameters.IncidenceMatrix?[j, i] < 0 && parameters.Markings[markingIndex][j] < -parameters.IncidenceMatrix[j, i])
-                            {
-                                enabled = false;
-                                break;
-                            }
-                        }
-                        // If the input places are satisfied, enable transition
-                        if (enabled)
-                        {
-                            // calculate new marking
-                            int[] newMarking = (int[])parameters.Markings[markingIndex].Clone();
-                            for (int j = 0; j < parameters.Nodes; j++)
-                            {
-                                newMarking[j] += parameters.IncidenceMatrix[j, i];
-                            }
-                            // find the index of the new marking
-                            int newMarkingIndex = parameters.Markings.FindIndex(marking => marking.SequenceEqual(newMarking));
-                            // add the index to the list
-                            successors.Add(newMarkingIndex);
+                            enabled = false;
+                            break;
                         }
                     }
-                    return successors;
+                    // If the input places are satisfied, enable transition
+                    if (enabled)
+                    {
+                        // calculate new marking
+                        int[] newMarking = (int[])parameters.Markings[markingIndex].Clone();
+
+                        for (int j = 0; j < Parameters.Nodes; j++)
+                        {
+                            newMarking[j] -= Parameters.PreMatrix[j, i];
+                            newMarking[j] += Parameters.PostMatrix[j, i];
+                        }
+
+                        // find the index of the new marking
+                        int newMarkingIndex = parameters.Markings.FindIndex(marking => marking.SequenceEqual(newMarking));
+                        // add the index to the list
+                        successors.Add(newMarkingIndex);
+                    }
                 }
+                return successors;
+            }
             #endregion
         }
     }

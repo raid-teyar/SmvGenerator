@@ -20,7 +20,7 @@ namespace SmvGenerator
     /// </summary>
     public partial class ParametersWindow : Window
     {
-       
+
 
         public Parameters Parameters { get; set; }
 
@@ -50,7 +50,7 @@ namespace SmvGenerator
             }
 
             TextBlock textBlock = new TextBlock();
-            textBlock.Text = "Incidence Matrix";
+            textBlock.Text = "Incidence Matrix (Pre, Post)";
             textBlock.FontSize = 20;
             textBlock.FontWeight = FontWeights.Bold;
             textBlock.HorizontalAlignment = HorizontalAlignment.Center;
@@ -132,26 +132,50 @@ namespace SmvGenerator
         {
             int[] initiaMarking = new int[Parameters.Nodes];
 
+
             for (int i = 0; i < Parameters.Nodes; i++)
             {
                 TextBox tb = (TextBox)gInitialMarking.Children[i];
+
                 initiaMarking[i] = Convert.ToInt32(tb.Text);
             }
 
-            int[,] incidenceMatrix = new int[Parameters.Nodes, Parameters.Transitions];
+            int[,] post = new int[Parameters.Nodes, Parameters.Transitions];
+            int[,] pre = new int[Parameters.Nodes, Parameters.Transitions];
 
             for (int i = 0; i < Parameters.Nodes; i++)
             {
                 for (int j = 0; j < Parameters.Transitions; j++)
                 {
                     TextBox tb = (TextBox)gIncidenceMatrix.Children[i * Parameters.Transitions + j];
-                    incidenceMatrix[i, j] = Convert.ToInt32(tb.Text);
+
+                    if (tb.Text == "0")
+                        break;
+
+                    pre[i, j] = Convert.ToInt32(tb.Text.Split(',')[0]);
+                    post[i, j] = Convert.ToInt32(tb.Text.Split(',')[1]);
                 }
             }
 
             Parameters.InitialMarking = initiaMarking;
-            Parameters.IncidenceMatrix = incidenceMatrix;
-            
+            //Parameters.PostMatrix = post;
+            //Parameters.PreMatrix = pre;
+
+            Parameters.PreMatrix = new int[,]{
+                {2,0 },
+                {0,1 },
+                {0,1 },
+                {0,0 }
+                };
+
+            Parameters.PostMatrix = new int[,]
+            {
+                {0,0 },
+                {1,0 },
+                {1,0 },
+                {0,2}
+                };
+
             MainWindow mw = new MainWindow(Parameters);
             mw.Show();
             this.Close();
