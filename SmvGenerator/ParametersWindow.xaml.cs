@@ -162,18 +162,16 @@ namespace SmvGenerator
             //Parameters.PreMatrix = pre;
 
             Parameters.PreMatrix = new int[,]{
+                {1,0 },
                 {2,0 },
                 {0,1 },
-                {0,1 },
-                {0,0 }
                 };
 
             Parameters.PostMatrix = new int[,]
             {
-                {0,0 },
                 {1,0 },
-                {1,0 },
-                {0,2}
+                {0,1 },
+                {2,0 },
                 };
 
             MainWindow mw = new MainWindow(Parameters);

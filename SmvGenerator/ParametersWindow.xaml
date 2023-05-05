@@ -46,7 +46,7 @@
                     Padding="20,0"
                     FontSize="20"
                     FontWeight="Bold"
-                    Text="4" />
+                    Text="3" />
             </StackPanel>
         </StackPanel>
 
