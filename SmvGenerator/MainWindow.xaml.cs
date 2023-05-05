@@ -1,4 +1,5 @@
-﻿using Microsoft.Msagl.Drawing;
+﻿using Microsoft.Msagl.Core.DataStructures;
+using Microsoft.Msagl.Drawing;
 using Microsoft.Msagl.GraphViewerGdi;
 using System;
 using System.Collections.Generic;
@@ -153,12 +154,12 @@ namespace SmvGenerator
                             }
                             if (existingEdge != null)
                             {
-                                existingEdge.LabelText += ",T" + (transitions.IndexOf(transition) + 1);
+                                existingEdge.LabelText += ",T" + (transitions.IndexOf(transition));
                             }
                             else
                             {
                                 Edge newEdge = graph.AddEdge(currentNode.Id, existingNode.Id);
-                                newEdge.LabelText = "T" + (transitions.IndexOf(transition) + 1);
+                                newEdge.LabelText = "T" + (transitions.IndexOf(transition));
                             }
                         }
                     }
@@ -167,11 +168,7 @@ namespace SmvGenerator
 
             MarkingsArray = ConvertMarkings(markings);
 
-
-
             // show graph
-
-
             GViewer viewer = new GViewer();
             viewer.ToolBarIsVisible = false;
             viewer.Graph = graph;
@@ -528,6 +525,173 @@ namespace SmvGenerator
             }
             return convertedMarkings;
 
+        }
+
+        // identify if graph is bounded or not
+        // using the rank of the incidence matrix, if rank < nodes - transitions, then the graph is unbounded
+        private int getRank(int[,] incidenceMatrix)
+        {
+            int rows = incidenceMatrix.GetLength(0);
+            int cols = incidenceMatrix.GetLength(1);
+            int rank = 0;
+
+            for (int j = 0; j < cols; j++)
+            {
+                // Find a non-zero entry in column j
+                int i;
+                for (i = rank; i < rows; i++)
+                {
+                    if (incidenceMatrix[i, j] != 0)
+                    {
+                        break;
+                    }
+                }
+
+                // If a non-zero entry is found, swap the rows
+                if (i < rows)
+                {
+                    for (int k = 0; k < cols; k++)
+                    {
+                        int temp = incidenceMatrix[rank, k];
+                        incidenceMatrix[rank, k] = incidenceMatrix[i, k];
+                        incidenceMatrix[i, k] = temp;
+                    }
+
+                    // Eliminate the entries below row rank in column j
+                    for (int k = rank + 1; k < rows; k++)
+                    {
+                        int factor = incidenceMatrix[k, j] / incidenceMatrix[rank, j];
+                        for (int l = j; l < cols; l++)
+                        {
+                            incidenceMatrix[k, l] -= factor * incidenceMatrix[rank, l];
+                        }
+                    }
+
+                    rank++;
+                }
+            }
+
+            return rank;
+        }
+
+        // using k-safety
+        private bool isKSafe(int k)
+        {
+            bool isSafe = true;
+            int[,] incidenceMatrix = Parameters.IncidenceMatrix;
+            int[] marking = (int[])Parameters.InitialMarking.Clone();
+            int n = Parameters.Nodes;
+
+            for (int i = 1; i <= k; i++)
+            {
+                // calculate reachable markings with a depth-first search
+                List<int[]> reachableMarkings = new List<int[]>();
+                Stack<int[]> stack = new Stack<int[]>();
+                stack.Push(marking);
+
+                while (stack.Count > 0)
+                {
+                    int[] currentMarking = stack.Pop();
+                    reachableMarkings.Add(currentMarking);
+
+                    // check all possible transitions
+                    for (int j = 0; j < Parameters.Transitions; j++)
+                    {
+                        bool isEnabled = true;
+
+                        for (int l = 0; l < n; l++)
+                        {
+                            if (incidenceMatrix[l, j] > 0 && currentMarking[l] < incidenceMatrix[l, j])
+                            {
+                                isEnabled = false;
+                                break;
+                            }
+                        }
+
+                        if (isEnabled)
+                        {
+                            int[] nextMarking = (int[])currentMarking.Clone();
+
+                            for (int l = 0; l < n; l++)
+                            {
+                                nextMarking[l] -= incidenceMatrix[l, j];
+                            }
+
+                            for (int l = 0; l < n; l++)
+                            {
+                                nextMarking[l] += incidenceMatrix[l, j + Parameters.Transitions];
+                            }
+
+                            if (!reachableMarkings.Any(x => x.SequenceEqual(nextMarking)))
+                            {
+                                stack.Push(nextMarking);
+                            }
+                        }
+                    }
+                }
+
+                // check if there are any pairs of markings that differ in more than k places
+                foreach (int[] marking1 in reachableMarkings)
+                {
+                    foreach (int[] marking2 in reachableMarkings)
+                    {
+                        int count = 0;
+
+                        for (int j = 0; j < n; j++)
+                        {
+                            if (marking1[j] != marking2[j])
+                            {
+                                count++;
+
+                                if (count > k)
+                                {
+                                    isSafe = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!isSafe)
+                        {
+                            break;
+                        }
+                    }
+
+                    if (!isSafe)
+                    {
+                        break;
+                    }
+                }
+
+                if (!isSafe)
+                {
+                    break;
+                }
+            }
+
+            return isSafe;
+        }
+
+        private int DetermineMaxKSafe()
+        {
+            int lo = 0; // lower bound
+            int hi = Parameters.Nodes;
+
+            while (lo <= hi)
+            {
+                int mid = (lo + hi) / 2;
+
+                if (isKSafe(mid))
+                {
+                    lo = mid + 1;
+                }
+                else
+                {
+                    hi = mid - 1;
+                }
+            }
+
+            return hi;
         }
     }
 }
