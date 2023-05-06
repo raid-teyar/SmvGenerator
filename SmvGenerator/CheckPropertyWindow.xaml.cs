@@ -64,7 +64,7 @@ namespace SmvGenerator
             try
             {
                 // Run nuSMV command line tool
-                var processInfo = new ProcessStartInfo("nuSMV", $"nuSMV -bmc {modelCode}")
+                var processInfo = new ProcessStartInfo("cmd.exe", $"/k nuSMV -bmc {modelCode}")
                 {
                     RedirectStandardOutput = true,
                     UseShellExecute = false
