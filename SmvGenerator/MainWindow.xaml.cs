@@ -112,13 +112,15 @@ namespace SmvGenerator
             transitions = GetTransitionsFromMatrices();
 
             // Create reachability graph
-            HashSet<string> visited = new HashSet<string>();
+            HashSet<string> visitedMarkings = new HashSet<string>();
+            HashSet<string> visitedNodes = new HashSet<string>();
             Queue<Dictionary<string, int>> queue = new Queue<Dictionary<string, int>>();
-            visited.Add(MarkingToString(markings[0]));
+            visitedMarkings.Add(MarkingToString(markings[0]));
             queue.Enqueue(markings[0]);
 
             Graph graph = new Graph("Reachability Graph");
             Node rootNode = graph.AddNode(MarkingToString(markings[0]));
+            visitedNodes.Add(rootNode.Id);
 
             while (queue.Count > 0)
             {
@@ -128,13 +130,14 @@ namespace SmvGenerator
                 {
                     Dictionary<string, int> newMarking = ApplyTransition(currentMarking, transition);
                     string newMarkingString = MarkingToString(newMarking);
-                    if (!visited.Contains(newMarkingString))
+                    if (!visitedMarkings.Contains(newMarkingString))
                     {
-                        visited.Add(newMarkingString);
+                        visitedMarkings.Add(newMarkingString);
                         markings.Add(newMarking);
                         queue.Enqueue(newMarking);
 
                         Node newNode = graph.AddNode(newMarkingString);
+                        visitedNodes.Add(newNode.Id);
                         Edge newEdge = graph.AddEdge(currentNode.Id, newNode.Id);
                         newEdge.LabelText = "T" + (transitions.IndexOf(transition));
                     }
@@ -143,6 +146,9 @@ namespace SmvGenerator
                         Node existingNode = graph.FindNode(newMarkingString);
                         if (existingNode != null && existingNode != currentNode)
                         {
+
+                            // The Petri net is bounded
+                            // Add the edge to the graph
                             Edge existingEdge = null;
                             foreach (Edge edge in graph.Edges)
                             {
@@ -161,6 +167,19 @@ namespace SmvGenerator
                                 Edge newEdge = graph.AddEdge(currentNode.Id, existingNode.Id);
                                 newEdge.LabelText = "T" + (transitions.IndexOf(transition));
                             }
+
+                        }
+                    }
+
+                    // check if marking in any place has exceeded MAX_K
+                    bool isBounded = true;
+                    foreach (KeyValuePair<string, int> place in currentMarking)
+                    {
+                        if (place.Value > Parameters.K)
+                        {
+                            isBounded = false;
+                            MessageBox.Show("The Petri net is not bounded. The marking of place " + place.Key + " has exceeded the maximum value of " + Parameters.K + ".");
+                            return;
                         }
                     }
                 }
@@ -220,6 +239,8 @@ namespace SmvGenerator
             // add the button to the grid to the 3rd column
             Grid.SetColumn(button, 1);
             gMain.Children.Add(button);
+
+
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
@@ -237,6 +258,9 @@ namespace SmvGenerator
 
             // open the file
             Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
+
+            CheckPropertyWindow checkPropertyWindow = new CheckPropertyWindow();
+            checkPropertyWindow.Show();
         }
 
         // petri net to SMV algorithm
@@ -282,25 +306,32 @@ namespace SmvGenerator
             // 15: open transition relation switch statement
             smvCode += "  next(s) := case\n";
 
+
             // 16: add transition relation cases for each state
             for (int i = 0; i < MarkingsArray?.Count; i++)
             {
+                string transitionStates = "";
                 // 17: add case s = si
-                smvCode += "\ts = s" + i + ": {";
+                transitionStates += "\ts = s" + i + ": {";
                 List<int> successors = GetSuccessors(i);
                 for (int j = 0; j < successors.Count; j++)
                 {
-                    smvCode += "s" + successors[j];
+                    transitionStates += "s" + successors[j];
                     if (j < successors.Count - 1)
                     {
-                        smvCode += ", ";
+                        transitionStates += ", ";
                     }
                 }
-                smvCode += "};\n";
+                transitionStates += "};\n";
+
+                if (successors.Count > 0)
+                {
+                    smvCode += transitionStates;
+                }
             }
 
             // 24: close transition relation switch statement
-            smvCode += "\tesac;\n";
+            smvCode += "\tTRUE: s; \n\tesac;\n";
 
             // 25: for all P
             for (int i = 0; i < parameters.Nodes; i++)
@@ -527,6 +558,19 @@ namespace SmvGenerator
 
         }
 
+        private bool isGraphUnBounded(int method = 0)
+        {
+            switch (method)
+            {
+                case 0:
+                    return getRank(Parameters.IncidenceMatrix) > Parameters.Nodes - Parameters.Transitions;
+                case 1:
+                    return DetermineMaxKSafe() == -1;
+                default:
+                    return false;
+            }
+        }
+
         // identify if graph is bounded or not
         // using the rank of the incidence matrix, if rank < nodes - transitions, then the graph is unbounded
         private int getRank(int[,] incidenceMatrix)
@@ -575,123 +619,72 @@ namespace SmvGenerator
         }
 
         // using k-safety
-        private bool isKSafe(int k)
+        public int DetermineMaxKSafe()
         {
-            bool isSafe = true;
+            int k = 0;
+            bool isKSafe = false;
             int[,] incidenceMatrix = Parameters.IncidenceMatrix;
-            int[] marking = (int[])Parameters.InitialMarking.Clone();
-            int n = Parameters.Nodes;
+            int[] initialMarking = Parameters.InitialMarking;
 
-            for (int i = 1; i <= k; i++)
+            while (!isKSafe)
             {
-                // calculate reachable markings with a depth-first search
-                List<int[]> reachableMarkings = new List<int[]>();
-                Stack<int[]> stack = new Stack<int[]>();
-                stack.Push(marking);
+                k++;
 
-                while (stack.Count > 0)
+                if (k > Parameters.K)
                 {
-                    int[] currentMarking = stack.Pop();
-                    reachableMarkings.Add(currentMarking);
-
-                    // check all possible transitions
-                    for (int j = 0; j < Parameters.Transitions; j++)
-                    {
-                        bool isEnabled = true;
-
-                        for (int l = 0; l < n; l++)
-                        {
-                            if (incidenceMatrix[l, j] > 0 && currentMarking[l] < incidenceMatrix[l, j])
-                            {
-                                isEnabled = false;
-                                break;
-                            }
-                        }
-
-                        if (isEnabled)
-                        {
-                            int[] nextMarking = (int[])currentMarking.Clone();
-
-                            for (int l = 0; l < n; l++)
-                            {
-                                nextMarking[l] -= incidenceMatrix[l, j];
-                            }
-
-                            for (int l = 0; l < n; l++)
-                            {
-                                nextMarking[l] += incidenceMatrix[l, j + Parameters.Transitions];
-                            }
-
-                            if (!reachableMarkings.Any(x => x.SequenceEqual(nextMarking)))
-                            {
-                                stack.Push(nextMarking);
-                            }
-                        }
-                    }
+                    // The Petri net is not k-safe for any k
+                    return -1;
                 }
 
-                // check if there are any pairs of markings that differ in more than k places
-                foreach (int[] marking1 in reachableMarkings)
+                // Check each place in the Petri net
+                for (int i = 0; i < incidenceMatrix.GetLength(0); i++)
                 {
-                    foreach (int[] marking2 in reachableMarkings)
+                    int maxInput = 0;
+                    int maxOutput = 0;
+
+                    // Check incoming arcs to the current place
+                    for (int j = 0; j < incidenceMatrix.GetLength(1); j++)
                     {
-                        int count = 0;
-
-                        for (int j = 0; j < n; j++)
+                        if (incidenceMatrix[i, j] < 0)
                         {
-                            if (marking1[j] != marking2[j])
-                            {
-                                count++;
+                            // This is an incoming arc to the current place
+                            int inputTokens = initialMarking[j] - incidenceMatrix[i, j];
 
-                                if (count > k)
-                                {
-                                    isSafe = false;
-                                    break;
-                                }
+                            if (inputTokens > maxInput)
+                            {
+                                maxInput = inputTokens;
                             }
                         }
+                    }
 
-                        if (!isSafe)
+                    // Check outgoing arcs from the current place
+                    for (int j = 0; j < incidenceMatrix.GetLength(1); j++)
+                    {
+                        if (incidenceMatrix[i, j] > 0)
                         {
-                            break;
+                            // This is an outgoing arc from the current place
+                            int outputTokens = initialMarking[j] + incidenceMatrix[i, j];
+
+                            if (outputTokens > maxOutput)
+                            {
+                                maxOutput = outputTokens;
+                            }
                         }
                     }
 
-                    if (!isSafe)
+                    // Check if the current place is k-bounded
+                    if (maxInput > k || maxOutput > k)
                     {
-                        break;
+                        break; // Current k value is not safe
                     }
-                }
-
-                if (!isSafe)
-                {
-                    break;
+                    else if (i == incidenceMatrix.GetLength(0) - 1)
+                    {
+                        isKSafe = true; // All places are k-bounded
+                    }
                 }
             }
 
-            return isSafe;
-        }
-
-        private int DetermineMaxKSafe()
-        {
-            int lo = 0; // lower bound
-            int hi = Parameters.Nodes;
-
-            while (lo <= hi)
-            {
-                int mid = (lo + hi) / 2;
-
-                if (isKSafe(mid))
-                {
-                    lo = mid + 1;
-                }
-                else
-                {
-                    hi = mid - 1;
-                }
-            }
-
-            return hi;
+            return k;
         }
     }
 }

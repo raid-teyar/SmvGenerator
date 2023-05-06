@@ -89,7 +89,7 @@ namespace SmvGenerator
 
         private void Next1Button_Click(object sender, RoutedEventArgs e)
         {
-            for (int i = 0; i < Parameters.Nodes; i++)
+            for (int i = 0; i < Parameters.Nodes + 1; i++)
             {
                 RowDefinition row = new RowDefinition();
                 row.Height = new GridLength(1, GridUnitType.Star);
@@ -110,7 +110,7 @@ namespace SmvGenerator
 
             gMain.Children.Add(textBlock);
 
-            for (int i = 0; i < Parameters.Nodes; i++)
+            for (int i = 1; i < Parameters.Nodes + 1; i++)
             {
                 TextBox tb = new TextBox();
                 tb.Name = "tb" + i;
@@ -135,7 +135,8 @@ namespace SmvGenerator
 
             for (int i = 0; i < Parameters.Nodes; i++)
             {
-                TextBox tb = (TextBox)gInitialMarking.Children[i];
+                TextBox tb = gInitialMarking.Children[i] as TextBox;
+
 
                 initiaMarking[i] = Convert.ToInt32(tb.Text);
             }
@@ -157,22 +158,18 @@ namespace SmvGenerator
                 }
             }
 
+            Parameters.K = Convert.ToInt32(tbK.Text);
             Parameters.InitialMarking = initiaMarking;
             //Parameters.PostMatrix = post;
             //Parameters.PreMatrix = pre;
 
-            Parameters.PreMatrix = new int[,]{
-                {1,0 },
-                {2,0 },
-                {0,1 },
-                };
+            Parameters.PreMatrix = new int[,]
+            {{ 2, 0 },
+            { 0, 1 },};
 
             Parameters.PostMatrix = new int[,]
-            {
-                {1,0 },
-                {0,1 },
-                {2,0 },
-                };
+            {{ 0, 1 },
+            { 1, 0 }};
 
             MainWindow mw = new MainWindow(Parameters);
             mw.Show();

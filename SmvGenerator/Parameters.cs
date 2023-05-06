@@ -14,6 +14,7 @@ namespace SmvGenerator
         public int[,]? PreMatrix { get; set; }
         public int[,]? PostMatrix { get; set; }
         public List<Dictionary<string, int>>? Markings { get; set; }
+        public int K { get; set; }
 
 
         private int[,]? _incidenceMatrix;

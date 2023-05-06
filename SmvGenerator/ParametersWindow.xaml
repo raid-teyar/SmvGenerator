@@ -28,6 +28,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <StackPanel>
@@ -46,7 +47,7 @@
                     Padding="20,0"
                     FontSize="20"
                     FontWeight="Bold"
-                    Text="3" />
+                    Text="2" />
             </StackPanel>
         </StackPanel>
 
@@ -105,14 +106,34 @@
 
         <!--  ask to fill initial marking  -->
 
+        <StackPanel
+            Grid.Row="6"
+            Grid.ColumnSpan="2"
+            Margin="20"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Orientation="Horizontal">
+            <TextBlock
+                Margin="10,0,20,0"
+                FontSize="20"
+                FontWeight="Bold"
+                Text="K-safe:" />
+            <TextBox
+                x:Name="tbK"
+                Padding="20,0"
+                FontSize="20"
+                FontWeight="Bold"
+                Text="50" />
+        </StackPanel>
+
         <Grid
             x:Name="gInitialMarking"
-            Grid.Row="6"
+            Grid.Row="7"
             Grid.ColumnSpan="2" />
 
         <Button
             x:Name="bGenerate"
-            Grid.Row="7"
+            Grid.Row="8"
             Grid.ColumnSpan="2"
             Margin="20"
             Padding="20,5"
