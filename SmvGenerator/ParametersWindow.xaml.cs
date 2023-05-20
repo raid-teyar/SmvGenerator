@@ -160,16 +160,16 @@ namespace SmvGenerator
 
             Parameters.K = Convert.ToInt32(tbK.Text);
             Parameters.InitialMarking = initiaMarking;
-            //Parameters.PostMatrix = post;
-            //Parameters.PreMatrix = pre;
+            Parameters.PostMatrix = post;
+            Parameters.PreMatrix = pre;
 
-            Parameters.PreMatrix = new int[,]
-            {{ 2, 0 },
-            { 0, 1 },};
+            //Parameters.PreMatrix = new int[,]
+            //{{ 2, 0 },
+            //{ 0, 1 },};
 
-            Parameters.PostMatrix = new int[,]
-            {{ 0, 1 },
-            { 1, 0 }};
+            //Parameters.PostMatrix = new int[,]
+            //{{ 0, 1 },
+            //{ 1, 0 }};
 
             MainWindow mw = new MainWindow(Parameters);
             mw.Show();

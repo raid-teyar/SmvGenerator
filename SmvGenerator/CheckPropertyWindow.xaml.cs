@@ -39,27 +39,27 @@ namespace SmvGenerator
             File.Copy("model.smv", "modelp.smv");
             File.AppendAllText("modelp.smv", "\n" + "LTLSPEC " + property);
 
-            bool isTrue;
-            string output = CheckProperty("modelp.smv", out isTrue);
+            bool isFalse;
+            string output = CheckProperty("modelp.smv", out isFalse);
 
             if (output != null)
             {
                 rbResults.Text = output;
             }
 
-            if (isTrue)
+            if (isFalse)
             {
-                btCheck.Background = new SolidColorBrush(Colors.LightGreen);
+                btCheck.Background = new SolidColorBrush(Colors.Red);
+                
             }
             else
             {
-                btCheck.Background = new SolidColorBrush(Colors.Red);
-
+                btCheck.Background = new SolidColorBrush(Colors.LightGreen);
             }
 
         }
 
-        public string CheckProperty(string modelCode, out bool isTrue)
+        public string CheckProperty(string modelCode, out bool isFalse)
         {
             try
             {
@@ -78,19 +78,19 @@ namespace SmvGenerator
                     var match = Regex.Match(output, @"-- specification.*?((?<=is )[A-Za-z]+)", RegexOptions.Singleline);
                     if (match.Success)
                     {
-                        isTrue = match.Groups[1].Value.ToLower() == "true";
+                        isFalse = match.Groups[1].Value.ToLower() == "false";
                         return output;
                     }
                     else
                     {
-                        isTrue = false;
+                        isFalse = false;
                         return output;
                     }
                 }
             }
             catch (Exception ex)
             {
-                isTrue = false;
+                isFalse = false;
                 return "Failed to parse nuSMV output";
             }
             finally

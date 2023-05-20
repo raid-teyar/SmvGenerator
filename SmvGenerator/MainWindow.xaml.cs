@@ -343,8 +343,18 @@ namespace SmvGenerator
                 for (int j = 0; j < MarkingsArray?.Count; j++)
                 {
                     //29: assign m to case s = sj, where m = Mj (pi) . s = sj : m;
-                    if (MarkingsArray[j][i] > 0)
+
+                    // check if the place is boolean
+                    if (IsPlaceBoolean(i))
                     {
+                        string value = MarkingsArray[j][i] == 1 ? "TRUE" : "FALSE";
+                        // 30: set m to TRUE or FALSE
+                        smvCode += "\ts = s" + j + ": " + value + ";\n";
+
+                    }
+                    else
+                    {
+                        // 31: set m to Mj (pi)
                         smvCode += "\ts = s" + j + ": " + MarkingsArray[j][i] + ";\n";
                     }
                 }

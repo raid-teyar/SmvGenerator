@@ -47,7 +47,7 @@
                     Padding="20,0"
                     FontSize="20"
                     FontWeight="Bold"
-                    Text="2" />
+                    Text="0" />
             </StackPanel>
         </StackPanel>
 
@@ -67,7 +67,7 @@
                     Padding="20,0"
                     FontSize="20"
                     FontWeight="Bold"
-                    Text="2" />
+                    Text="0" />
             </StackPanel>
         </StackPanel>
 
