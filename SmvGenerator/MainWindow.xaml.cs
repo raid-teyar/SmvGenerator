@@ -331,7 +331,7 @@ namespace SmvGenerator
             }
 
             // 24: close transition relation switch statement
-            smvCode += "\tTRUE: s; \n\tesac;\n";
+            smvCode += "\tTRUE: s0; \n\tesac;\n";
 
             // 25: for all P
             for (int i = 0; i < parameters.Nodes; i++)
